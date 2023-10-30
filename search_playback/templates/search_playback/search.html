@@ -1,0 +1,153 @@
+{% extends "base.html" %} {% load static %} {% block content %}
+<div class="flex flex-row">
+    <div class="flex flex-col w-56 bg-indigo-100 py-2 px-4">
+        <div class="text-xl font-bold my-2">查询条件</div>
+        <form class="flex flex-col space-y-2" action="{% url 'search_playback:search' %}" method="post">
+            {% csrf_token %}
+            <label for="start_date">起始日期:</label>
+            <input id="start_date" type="date" name="start_date" value="{{start_date}}" />
+            <label for="end_date">结束日期:</label>
+            <input id="end_date" type="date" name="end_date" value="{{end_date}}" />
+            <label for="agent_id">选择座席ID:</label>
+            <select id="agent_id" name="agent_id" title="选择座席ID"
+              class="select select-primary select-sm w-full max-w-xs">
+                <option selected>{{agent_id}}</option>
+                {% if agent_id %}
+                <option></option>
+                {% endif %} {% for id in all_agent_id %} {% if id != agent_id %}
+                <option>{{id}}</option>
+                {% endif %} {% endfor %}
+            </select>
+            <label for="duration">通话时长:</label>
+            <select id="duration" name="duration" title="选择通话时长范围"
+              class="select select-primary select-sm w-full max-w-xs">
+                <option selected>{{duration}}</option>
+                {% if duration %}
+                <option></option>
+                {% endif %}
+                <option>小于1分钟</option>
+                <option>1分钟到5分钟</option>
+                <option>5分钟到10分钟</option>
+                <option>大于10分钟</option>
+            </select>
+            <br />
+            <input
+              class="rounded-md h-10 text-lg bg-indigo-200 hover:bg-indigo-600 hover:text-white hover:cursor-pointer"
+              type="submit" value="搜索" />
+        </form>
+        <a href="/"
+          class="flex justify-center items-center mb-4 rounded-md h-10 text-lg bg-orange-200 hover:bg-orange-600 hover:text-white hover:cursor-pointer">
+            <div>清空搜索结果</div>
+        </a>
+        <a href="{% url 'search_playback:import' %}"
+          class="flex justify-center items-center mb-2 pointer-events-none rounded-md h-10 text-lg bg-indigo-200 hover:bg-indigo-600 hover:text-white hover:cursor-pointer">
+            <div>录音导入</div>
+        </a>
+    </div>
+    <div class="w-full py-2 px-4">
+        <!-- Recordings Table  -->
+        <div class="overflow-x-auto">
+            <table class="table-sm w-full">
+                <!-- head -->
+                <thead>
+                    <tr class="text-lg text-black font-bold border-b border-slate-500">
+                        <th></th>
+                        <td>录音文件名</td>
+                        <td>开始时间</td>
+                        <td>录音时长</td>
+                        <td>分机号</td>
+                        <td>坐席ID</td>
+                        <td>来电号码</td>
+                        <td>被叫号码</td>
+                        <th>播放录音</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in recordings %}
+                    {% if current_recording.file_name == rec.file_name %}
+                    <tr class="border-b border-slate-500 bg-orange-200">
+                    {% else %}
+                    <tr class="border-b border-slate-500 hover:bg-slate-200">
+                    {% endif %}
+                        <th class="py-1">{{index_of_page|add:forloop.counter}}</th>
+                        <td class="py-1">{{rec.file_name|cut:".wav"}}</td>
+                        <td class="py-1">{{rec.start_time.time}} {{rec.start_time.date}}</td>
+                        <td class="py-1">{{rec.duration}}</td>
+                        <td class="py-1">{{rec.extension}}</td>
+                        <td class="py-1">{{rec.agent_id}}</td>
+                        <td class="py-1">{{rec.ani}}</td>
+                        <td class="py-1">{{rec.dnis}}</td>
+                        <td class="py-1">
+                            <a class="flex justify-center"
+                              href="/?start_date={{start_date}}&end_date={{end_date}}&agent_id={{agent_id}}&duration={{duration}}&page={{current_page}}&file_name={{rec.file_name|cut:'.wav'}}"><img
+                                  class="w-8 h-8" src="{% static 'search_playback/play.png' %}" alt="Play" /></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Playback UI  -->
+        {% if current_recording %}
+        <div class="mt-4">
+            <!-- <div class="overflow-x-auto">
+                <table class="table-sm w-full">
+                    <tbody>
+                        <tr>
+                            <th></th>
+                            <td>{{current_recording.file_name}}</td>
+                            <td>
+                                {{current_recording.start_time.time}}
+                                {{current_recording.start_time.date}}
+                            </td>
+                            <td>{{current_recording.duration}}</td>
+                            <td>{{current_recording.extension}}</td>
+                            <td>{{current_recording.agent_id}}</td>
+                            <td>{{current_recording.ani}}</td>
+                            <td>{{current_recording.dnis}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div> -->
+            <audio controls class="w-full">
+                <source
+                  src="{% static 'search_playback/recordings/'|add:current_recording.file_name|cut:'.wav'|add:'.wav' %}"
+                  type="audio/wav" />
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+        {% endif %}
+
+        <!-- Pagination  -->
+        {% if num_page %}
+        <div class="flex justify-center items-center space-x-4 mt-4 mb-2">
+            <div class="join">
+                {% for i in page_range %} {% if i == current_page %}
+                <a href="/?start_date={{start_date}}&end_date={{end_date}}&agent_id={{agent_id}}&duration={{duration}}&page={{i}}"
+                  class="join-item btn btn-active px-3">{{i}}</a>
+                {% else %}
+                <a href="/?start_date={{start_date}}&end_date={{end_date}}&agent_id={{agent_id}}&duration={{duration}}&page={{i}}"
+                  class="join-item btn px-3">{{i}}</a>
+                {% endif %} {% endfor %}
+            </div>
+
+            <select id="start_page" name="start_page" title="起始页码"
+              onchange="location.href=this.options[this.selectedIndex].value;"
+              class="select select-primary select-md max-w-xs">
+                <option disabled selected>页码</option>
+                {% for start_page in start_page_list %}
+                <option
+                  value="/?start_date={{start_date}}&end_date={{end_date}}&agent_id={{agent_id}}&duration={{duration}}&page={{start_page}}">
+                    {% if start_page|add:rec_per_page|add:-1 <= num_page %} {{start_page}}页 ~
+                      {{start_page|add:rec_per_page|add:-1}}页 {% else %} {{start_page}}页 ~ {{num_page}}页 {% endif %}
+                      </option>
+                        {% endfor %}
+            </select>
+            <h5>共查询到 {{num_recordings}} 条录音</h5>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
