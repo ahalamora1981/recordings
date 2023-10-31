@@ -1,3 +1,2 @@
 django==4.2.6
 pysqlite3
-pandas
